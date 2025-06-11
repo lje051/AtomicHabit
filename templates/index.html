@@ -1,0 +1,1260 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아주 작은 습관 GPT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .habit-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .habit-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-appear {
+            animation: cardAppear 0.5s ease-out;
+        }
+        
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .response-card {
+            animation: responseAppear 0.6s ease-out;
+        }
+        
+        @keyframes responseAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .auth-form {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .form-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .form-input:focus {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8" x-data="habitApp()">
+        
+        <!-- 로그인/회원가입 화면 -->
+        <div x-show="!isAuthenticated" class="max-w-md mx-auto mt-20">
+            <div class="glass-effect rounded-xl p-8 text-white">
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold mb-2">🌱 아주 작은 습관 GPT</h1>
+                    <p class="text-white/80">작은 변화가 만드는 큰 차이</p>
+                </div>
+
+                <!-- 로그인/회원가입 탭 -->
+                <div class="flex mb-6">
+                    <button @click="authMode = 'login'" 
+                            :class="authMode === 'login' ? 'bg-white/20' : 'bg-white/10'"
+                            class="flex-1 py-2 px-4 rounded-l-lg transition-colors">
+                        로그인
+                    </button>
+                    <button @click="authMode = 'register'" 
+                            :class="authMode === 'register' ? 'bg-white/20' : 'bg-white/10'"
+                            class="flex-1 py-2 px-4 rounded-r-lg transition-colors">
+                        회원가입
+                    </button>
+                </div>
+
+                <!-- 로그인 폼 -->
+                <form x-show="authMode === 'login'" @submit.prevent="handleLogin()" class="auth-form space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">이메일</label>
+                        <input type="email" x-model="loginForm.email" required
+                               class="w-full px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               placeholder="이메일을 입력하세요">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">비밀번호</label>
+                        <input type="password" x-model="loginForm.password" required
+                               class="w-full px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               placeholder="비밀번호를 입력하세요">
+                    </div>
+                    <button type="submit" :disabled="authLoading"
+                            class="w-full bg-white/20 hover:bg-white/30 py-3 rounded-lg font-medium transition-colors disabled:opacity-50">
+                        <span x-show="!authLoading">로그인</span>
+                        <span x-show="authLoading">로그인 중...</span>
+                    </button>
+                </form>
+
+                <!-- 회원가입 폼 -->
+                <form x-show="authMode === 'register'" @submit.prevent="handleRegister()" class="auth-form space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">이름</label>
+                        <input type="text" x-model="registerForm.name" required
+                               class="w-full px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               placeholder="이름을 입력하세요">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">이메일</label>
+                        <input type="email" x-model="registerForm.email" required
+                               class="w-full px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               placeholder="이메일을 입력하세요">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">비밀번호</label>
+                        <input type="password" x-model="registerForm.password" required
+                               class="w-full px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               placeholder="비밀번호를 입력하세요 (6자 이상)">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">비밀번호 확인</label>
+                        <input type="password" x-model="registerForm.confirmPassword" required
+                               class="w-full px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               placeholder="비밀번호를 다시 입력하세요">
+                    </div>
+                    <button type="submit" :disabled="authLoading"
+                            class="w-full bg-white/20 hover:bg-white/30 py-3 rounded-lg font-medium transition-colors disabled:opacity-50">
+                        <span x-show="!authLoading">회원가입</span>
+                        <span x-show="authLoading">가입 중...</span>
+                    </button>
+                </form>
+
+                <!-- 에러 메시지 -->
+                <div x-show="authError" class="mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
+                    <p class="text-sm text-white" x-text="authError"></p>
+                </div>
+
+                <!-- 임시 로그인 버튼 (개발용) -->
+                <div class="mt-6 pt-6 border-t border-white/20">
+                    <button @click="tempLogin()" 
+                            class="w-full bg-green-500/20 hover:bg-green-500/30 py-2 rounded-lg text-sm transition-colors">
+                        🔧 개발용 임시 로그인
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 앱 화면 (로그인 후) -->
+        <div x-show="isAuthenticated">
+            <!-- 상단 네비게이션 -->
+            <nav class="flex justify-between items-center mb-8">
+                <div class="text-white">
+                    <span class="text-lg">안녕하세요, </span>
+                    <span class="font-semibold" x-text="user.name"></span>님! 👋
+                </div>
+                <div class="flex space-x-4">
+                    <button @click="showProfile = !showProfile" 
+                            class="glass-effect px-4 py-2 rounded-lg text-white hover:bg-white/20 transition-colors">
+                        프로필
+                    </button>
+                    <button @click="showActivities = !showActivities" 
+                            class="glass-effect px-4 py-2 rounded-lg text-white hover:bg-white/20 transition-colors">
+                        활동 내역
+                    </button>
+                    <button @click="logout()" 
+                            class="glass-effect px-4 py-2 rounded-lg text-white hover:bg-white/20 transition-colors">
+                        로그아웃
+                    </button>
+                </div>
+            </nav>
+
+            <!-- 프로필 모달 -->
+            <div x-show="showProfile" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click="showProfile = false">
+                <div class="glass-effect rounded-xl p-6 text-white max-w-sm w-full mx-4" @click.stop>
+                    <h3 class="text-xl font-semibold mb-4">내 프로필</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-sm text-white/80">이름</label>
+                            <p class="font-medium" x-text="user.name"></p>
+                        </div>
+                        <div>
+                            <label class="text-sm text-white/80">이메일</label>
+                            <p class="font-medium" x-text="user.email"></p>
+                        </div>
+                        <div>
+                            <label class="text-sm text-white/80">가입일</label>
+                            <p class="font-medium" x-text="user.joinDate"></p>
+                        </div>
+                    </div>
+                    <button @click="showProfile = false" 
+                            class="mt-4 w-full bg-white/20 hover:bg-white/30 py-2 rounded-lg transition-colors">
+                        닫기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 활동 내역 모달 -->
+            <div x-show="showActivities" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click="showActivities = false">
+                <div class="glass-effect rounded-xl p-6 text-white max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" @click.stop>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold">내 활동 내역</h3>
+                        <button @click="refreshActivities()" 
+                                :disabled="activitiesLoading"
+                                class="text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded transition-colors disabled:opacity-50">
+                            <span x-show="!activitiesLoading">🔄 새로고침</span>
+                            <span x-show="activitiesLoading">로딩중...</span>
+                        </button>
+                    </div>
+                    
+                    <!-- 활동 내역 목록 -->
+                    <div class="overflow-y-auto max-h-96 space-y-3" x-show="!activitiesLoading">
+                        <template x-if="activities.length === 0">
+                            <div class="text-center py-8 text-white/60">
+                                <div class="text-3xl mb-2">📝</div>
+                                <p>아직 활동 내역이 없습니다.</p>
+                                <p class="text-sm">습관을 선택하고 추천을 받아보세요!</p>
+                            </div>
+                        </template>
+                        
+                        <template x-for="activity in activities" :key="activity.recordedAt">
+                            <div class="bg-white/10 rounded-lg p-4 border border-white/20">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-lg" x-text="getActivityIcon(activity.activity)"></span>
+                                        <span class="font-medium text-sm" x-text="getActivityLabel(activity.activity)"></span>
+                                    </div>
+                                    <span class="text-xs text-white/60" x-text="formatDate(activity.timestamp)"></span>
+                                </div>
+                                
+                                <div class="space-y-1 text-sm">
+                                    <div x-show="activity.category" class="flex items-center space-x-2">
+                                        <span class="text-white/60">카테고리:</span>
+                                        <span class="bg-white/20 px-2 py-1 rounded text-xs" x-text="getCategoryLabel(activity.category)"></span>
+                                    </div>
+                                    <div x-show="activity.habit" class="flex items-center space-x-2">
+                                        <span class="text-white/60">습관:</span>
+                                        <span class="text-white/80" x-text="activity.habit"></span>
+                                    </div>
+                                    <div x-show="activity.question" class="mt-2">
+                                        <span class="text-white/60">질문:</span>
+                                        <p class="text-white/80 mt-1 text-xs bg-white/10 p-2 rounded" x-text="activity.question"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <!-- 로딩 상태 -->
+                    <div x-show="activitiesLoading" class="text-center py-8">
+                        <div class="text-3xl mb-2">⏳</div>
+                        <p>활동 내역을 불러오는 중...</p>
+                    </div>
+                    
+                    <!-- 통계 정보 -->
+                    <div x-show="activities.length > 0" class="mt-4 pt-4 border-t border-white/20">
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="bg-white/10 rounded-lg p-3">
+                                <div class="text-lg font-semibold" x-text="activities.length"></div>
+                                <div class="text-xs text-white/60">총 활동</div>
+                            </div>
+                            <div class="bg-white/10 rounded-lg p-3">
+                                <div class="text-lg font-semibold" x-text="getUniqueCategories()"></div>
+                                <div class="text-xs text-white/60">탐색한 카테고리</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button @click="showActivities = false" 
+                            class="mt-4 w-full bg-white/20 hover:bg-white/30 py-2 rounded-lg transition-colors">
+                        닫기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 헤더 -->
+            <header class="text-center mb-12">
+                <h1 class="text-4xl md:text-6xl font-bold text-white mb-4">
+                    🌱 아주 작은 습관 GPT
+                </h1>
+                <p class="text-xl text-white/80 mb-2">작은 변화가 만드는 큰 차이</p>
+            </header>
+
+            <!-- 뒤로가기 버튼 -->
+            <div x-show="selectedCategory" class="mb-6">
+                <button @click="goBack()" 
+                        class="glass-effect text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-colors">
+                    ← 뒤로가기
+                </button>
+            </div>
+
+            <!-- 메인 카테고리 카드들 -->
+            <div x-show="!selectedCategory" class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <div class="glass-effect rounded-xl p-6 text-white habit-card" 
+                     @click="selectCategory('health')">
+                    <div class="text-4xl mb-4">💪</div>
+                    <h3 class="text-xl font-semibold mb-2">건강 관리</h3>
+                    <p class="text-sm text-white/80">운동, 식단, 수면 관련 작은 습관들</p>
+                </div>
+
+                <div class="glass-effect rounded-xl p-6 text-white habit-card" 
+                     @click="selectCategory('productivity')">
+                    <div class="text-4xl mb-4">⚡</div>
+                    <h3 class="text-xl font-semibold mb-2">생산성 향상</h3>
+                    <p class="text-sm text-white/80">업무 효율성과 시간 관리</p>
+                </div>
+
+                <div class="glass-effect rounded-xl p-6 text-white habit-card" 
+                     @click="selectCategory('stress')">
+                    <div class="text-4xl mb-4">🧘</div>
+                    <h3 class="text-xl font-semibold mb-2">스트레스 관리</h3>
+                    <p class="text-sm text-white/80">정신 건강과 감정 조절</p>
+                </div>
+
+                <div class="glass-effect rounded-xl p-6 text-white habit-card" 
+                     @click="selectCategory('energy')">
+                    <div class="text-4xl mb-4">🔋</div>
+                    <h3 class="text-xl font-semibold mb-2">에너지 증진</h3>
+                    <p class="text-sm text-white/80">활력과 컨디션 개선</p>
+                </div>
+            </div>
+
+            <!-- 세부 카드들 -->
+            <div x-show="selectedCategory" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                <template x-for="card in currentCards" :key="card.id">
+                    <div class="glass-effect rounded-xl p-6 text-white habit-card card-appear" 
+                         @click="selectHabit(card)">
+                        <div class="text-3xl mb-4" x-text="card.emoji"></div>
+                        <h3 class="text-lg font-semibold mb-2" x-text="card.title"></h3>
+                        <p class="text-sm text-white/80" x-text="card.description"></p>
+                        <div class="mt-4 text-xs text-white/60">
+                            <span class="bg-white/20 px-2 py-1 rounded" x-text="card.duration"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- AI 응답 카드 -->
+            <div x-show="aiResponse" class="max-w-4xl mx-auto mb-12">
+                <div class="glass-effect rounded-xl p-8 text-white response-card">
+                    <div class="flex items-start space-x-4">
+                        <div class="text-3xl">🤖</div>
+                        <div class="flex-1">
+                            <h3 class="text-xl font-semibold mb-4" x-text="selectedHabit.title"></h3>
+                            <div class="whitespace-pre-wrap leading-relaxed" x-text="aiResponse"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 다시 추천받기 버튼 -->
+                    <div class="mt-6 flex justify-center">
+                        <button @click="getAnotherRecommendation()" 
+                                :disabled="loading"
+                                class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50">
+                            <span x-show="!loading">다른 습관 추천받기</span>
+                            <span x-show="loading">추천 중...</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 로딩 상태 -->
+            <div x-show="loading && !aiResponse" class="max-w-4xl mx-auto">
+                <div class="glass-effect rounded-xl p-8 text-white text-center">
+                    <div class="text-3xl mb-4">🤖</div>
+                    <p class="text-lg mb-4">맞춤형 습관을 추천하고 있습니다...</p>
+                    <div class="flex justify-center space-x-1">
+                        <div class="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                        <div class="w-2 h-2 bg-white rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 채팅창 섹션 -->
+            <div class="max-w-4xl mx-auto mt-16 mb-12">
+                <div class="glass-effect rounded-xl p-6 text-white">
+                    <h2 class="text-2xl font-bold mb-6 text-center">
+                        🤖 습관 코치와 채팅하기
+                    </h2>
+                    
+                    <!-- 채팅 메시지 영역 -->
+                    <div class="bg-black/20 rounded-lg p-4 mb-4 h-96 overflow-y-auto" id="chatMessages">
+                        <template x-if="chatMessages.length === 0">
+                            <div class="text-center text-white/60 mt-20">
+                                <div class="text-4xl mb-4">💬</div>
+                                <p>안녕하세요! 습관 관련 궁금한 것이 있으시면 언제든 물어보세요.</p>
+                                <p class="text-sm mt-2">예: "운동 습관을 만들고 싶어요", "미루는 습관을 고치고 싶어요"</p>
+                            </div>
+                        </template>
+                        
+                        <template x-for="(message, index) in chatMessages" :key="index">
+                            <div class="mb-4" :class="message.role === 'user' ? 'text-right' : 'text-left'">
+                                <div class="inline-block max-w-[80%]" :class="message.role === 'user' ? 'ml-auto' : 'mr-auto'">
+                                    <div class="flex items-start space-x-3" :class="message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''">
+                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm"
+                                             :class="message.role === 'user' ? 'bg-blue-500/30' : 'bg-green-500/30'">
+                                            <span x-text="message.role === 'user' ? '👤' : '🤖'"></span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-xs text-white/60 mb-1 px-1" 
+                                                 :class="message.role === 'user' ? 'text-right' : 'text-left'"
+                                                 x-text="message.role === 'user' ? '나' : '습관 코치'"></div>
+                                            <div class="rounded-2xl p-4 shadow-lg"
+                                                 :class="message.role === 'user' ? 
+                                                    'bg-blue-500/30 border border-blue-400/30 rounded-br-md' : 
+                                                    'bg-white/10 border border-white/20 rounded-bl-md'">
+                                                <div class="whitespace-pre-wrap text-sm leading-relaxed" x-text="message.content"></div>
+                                            </div>
+                                            <div class="text-xs text-white/40 mt-1 px-1" 
+                                                 :class="message.role === 'user' ? 'text-right' : 'text-left'"
+                                                 x-text="formatChatTime(message.timestamp)"></div>
+                                            <!-- 선택된 습관 정보 표시 -->
+                                            <div x-show="message.selectedCategory || message.selectedHabit" 
+                                                 class="mt-2 px-1">
+                                                <div class="flex flex-wrap gap-1 text-xs" 
+                                                     :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
+                                                    <span x-show="message.selectedCategory" 
+                                                          class="bg-white/20 px-2 py-1 rounded-full"
+                                                          x-text="getCategoryLabel(message.selectedCategory)"></span>
+                                                    <span x-show="message.selectedHabit" 
+                                                          class="bg-white/30 px-2 py-1 rounded-full"
+                                                          x-text="message.selectedHabit"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <!-- 타이핑 인디케이터 -->
+                        <div x-show="chatLoading" class="text-left mb-4">
+                            <div class="inline-block max-w-[80%] mr-auto">
+                                <div class="flex items-start space-x-3">
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center text-sm">
+                                        <span>🤖</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-xs text-white/60 mb-1 px-1">습관 코치</div>
+                                        <div class="bg-white/10 border border-white/20 rounded-2xl rounded-bl-md p-4">
+                                            <div class="flex space-x-1 items-center">
+                                                <span class="text-sm text-white/80">답변 중</span>
+                                                <div class="flex space-x-1 ml-2">
+                                                    <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
+                                                    <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                                    <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 메시지 입력 영역 -->
+                    <form @submit.prevent="sendChatMessage()" class="flex space-x-3">
+                        <input type="text" x-model="chatInput" 
+                               :disabled="chatLoading || !isAuthenticated"
+                               class="flex-1 px-4 py-3 rounded-lg form-input text-white placeholder-white/60"
+                               :placeholder="isAuthenticated ? '습관에 대해 궁금한 것을 물어보세요...' : '로그인 후 이용해주세요'">
+                        <button type="submit" 
+                                :disabled="chatLoading || !chatInput.trim() || !isAuthenticated"
+                                class="px-6 py-3 bg-blue-500/30 hover:bg-blue-500/50 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span x-show="!chatLoading">전송</span>
+                            <span x-show="chatLoading">전송중...</span>
+                        </button>
+                    </form>
+                    
+                    <!-- 로그인 안내 -->
+                    <div x-show="!isAuthenticated" class="mt-3 text-center text-white/60 text-sm">
+                        <p>💡 로그인하면 채팅 내역이 활동 기록에 저장됩니다!</p>
+                    </div>
+                    
+                    <!-- 빠른 질문 버튼들 -->
+                    <div x-show="isAuthenticated && chatMessages.length === 0" class="mt-4">
+                        <div class="text-sm text-white/60 mb-2">빠른 질문:</div>
+                        <div class="flex flex-wrap gap-2">
+                            <button @click="sendQuickQuestion('운동 습관을 만들고 싶어요')" 
+                                    class="text-xs bg-white/10 hover:bg-white/20 px-3 py-2 rounded-full transition-colors">
+                                💪 운동 습관 만들기
+                            </button>
+                            <button @click="sendQuickQuestion('미루는 습관을 고치고 싶어요')" 
+                                    class="text-xs bg-white/10 hover:bg-white/20 px-3 py-2 rounded-full transition-colors">
+                                ⏰ 미루는 습관 고치기
+                            </button>
+                            <button @click="sendQuickQuestion('일찍 일어나는 방법을 알려주세요')" 
+                                    class="text-xs bg-white/10 hover:bg-white/20 px-3 py-2 rounded-full transition-colors">
+                                🌅 일찍 일어나기
+                            </button>
+                            <button @click="sendQuickQuestion('독서 습관을 만들고 싶어요')" 
+                                    class="text-xs bg-white/10 hover:bg-white/20 px-3 py-2 rounded-full transition-colors">
+                                📚 독서 습관 만들기
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 채팅 초기화 버튼 -->
+                    <div x-show="chatMessages.length > 0" class="mt-4 text-center">
+                        <button @click="clearChat()" 
+                                class="text-xs text-white/60 hover:text-white/80 underline transition-colors">
+                            대화 내역 지우기
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 푸터 -->
+            <footer class="text-center mt-12 text-white/60">
+                <p class="text-sm">
+                    💡 팁: 습관은 작게 시작하세요. 2분 이내로 할 수 있는 것부터!
+                </p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+      function habitApp() {
+    return {
+        // 인증 관련 상태
+        isAuthenticated: false,
+        authMode: 'login',
+        authLoading: false,
+        authError: '',
+        showProfile: false,
+        showActivities: false,
+        user: {},
+        
+        // 활동 내역 관련 상태
+        activities: [],
+        activitiesLoading: false,
+        
+        // 🆕 채팅 관련 상태
+        chatMessages: [],
+        chatInput: '',
+        chatLoading: false,
+        
+        // 폼 데이터
+        loginForm: {
+            email: '',
+            password: ''
+        },
+        registerForm: {
+            name: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
+        },
+
+        // 기존 앱 상태
+        selectedCategory: '',
+        selectedHabit: {},
+        currentCards: [],
+        aiResponse: '',
+        loading: false,
+
+        // 카테고리별 세부 카드 데이터
+        cardData: {
+            health: [
+                { id: 1, emoji: '🏃‍♂️', title: '아침 운동', description: '하루를 활기차게 시작하는 운동 습관', duration: '5-10분', prompt: '매일 아침 5-10분 간단한 운동 루틴' },
+                { id: 2, emoji: '🥗', title: '건강한 식단', description: '영양 균형을 맞춘 식사 습관', duration: '매 끼니', prompt: '건강한 식단 관리와 영양소 섭취' },
+                { id: 3, emoji: '💤', title: '수면 관리', description: '질 좋은 잠을 위한 수면 습관', duration: '매일 밤', prompt: '숙면을 위한 수면 패턴과 환경 조성' },
+                { id: 4, emoji: '💧', title: '물 마시기', description: '충분한 수분 섭취 습관', duration: '하루 종일', prompt: '적절한 수분 섭취와 물 마시는 습관' },
+                { id: 5, emoji: '🧘‍♀️', title: '스트레칭', description: '몸의 긴장을 풀어주는 스트레칭', duration: '5분', prompt: '일상 속 간단한 스트레칭 루틴' },
+                { id: 6, emoji: '🚶‍♂️', title: '산책하기', description: '자연과 함께하는 걷기 습관', duration: '20-30분', prompt: '규칙적인 산책과 걷기 운동' }
+            ],
+            productivity: [
+                { id: 1, emoji: '📝', title: '투두리스트', description: '하루 할 일을 정리하는 습관', duration: '5분', prompt: '효과적인 할 일 목록 작성과 관리' },
+                { id: 2, emoji: '🍅', title: '포모도로 기법', description: '집중력을 높이는 시간 관리', duration: '25분', prompt: '포모도로 기법을 활용한 집중력 향상' },
+                { id: 3, emoji: '📚', title: '독서하기', description: '지식을 늘리는 읽기 습관', duration: '15-30분', prompt: '꾸준한 독서 습관과 지식 습득' },
+                { id: 4, emoji: '🎯', title: '목표 설정', description: '명확한 목표를 세우는 습관', duration: '10분', prompt: '구체적이고 달성 가능한 목표 설정' },
+                { id: 5, emoji: '🗂️', title: '정리정돈', description: '작업 공간을 깔끔하게 유지', duration: '10분', prompt: '효율적인 작업 공간 정리와 관리' },
+                { id: 6, emoji: '⏰', title: '시간 관리', description: '시간을 효율적으로 사용하기', duration: '지속적', prompt: '시간 관리 기술과 우선순위 설정' }
+            ],
+            stress: [
+                { id: 1, emoji: '🧘', title: '명상하기', description: '마음의 평화를 찾는 명상', duration: '5-10분', prompt: '일상 속 간단한 명상과 마음챙김' },
+                { id: 2, emoji: '🌸', title: '감사하기', description: '긍정적인 마음가짐 기르기', duration: '5분', prompt: '감사 인사와 긍정적 사고 습관' },
+                { id: 3, emoji: '🎵', title: '음악 듣기', description: '마음을 달래는 음악 감상', duration: '15-30분', prompt: '스트레스 해소를 위한 음악 활용' },
+                { id: 4, emoji: '✍️', title: '일기 쓰기', description: '감정을 정리하는 글쓰기', duration: '10분', prompt: '감정 정리와 자기 성찰을 위한 일기' },
+                { id: 5, emoji: '🌿', title: '자연 감상', description: '자연 속에서 마음 힐링하기', duration: '20분', prompt: '자연 속에서 스트레스 해소하기' },
+                { id: 6, emoji: '😌', title: '심호흡', description: '깊은 호흡으로 마음 안정', duration: '3-5분', prompt: '효과적인 호흡법과 이완 기술' }
+            ],
+            energy: [
+                { id: 1, emoji: '☀️', title: '아침 햇빛', description: '자연 에너지로 하루 시작', duration: '10분', prompt: '아침 햇빛 쬐기와 비타민D 합성' },
+                { id: 2, emoji: '💪', title: '파워 포즈', description: '자신감을 높이는 자세', duration: '2분', prompt: '에너지를 높이는 파워 포즈와 자세' },
+                { id: 3, emoji: '🎶', title: '신나는 음악', description: '기분을 업시키는 음악', duration: '10분', prompt: '에너지 충전을 위한 음악 활용' },
+                { id: 4, emoji: '🍎', title: '건강 간식', description: '에너지를 주는 영양 간식', duration: '간식시간', prompt: '에너지 보충을 위한 건강한 간식' },
+                { id: 5, emoji: '🚿', title: '차가운 샤워', description: '활력을 주는 찬물 샤워', duration: '2-3분', prompt: '에너지 부스터, 차가운 샤워의 효과' },
+                { id: 6, emoji: '🌱', title: '새로운 도전', description: '작은 도전으로 활력 찾기', duration: '매일', prompt: '일상 속 작은 도전과 성취감' }
+            ]
+        },
+
+        // 초기화
+        init() {
+            this.checkAuthStatus();
+        },
+
+        // 인증 상태 확인
+        checkAuthStatus() {
+            const token = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('userData');
+            
+            if (token && userData) {
+                this.isAuthenticated = true;
+                this.user = JSON.parse(userData);
+                // 로그인 상태라면 활동 내역도 미리 로드
+                this.loadActivities();
+            }
+        },
+
+        // 로그인 처리
+        async handleLogin() {
+            this.authLoading = true;
+            this.authError = '';
+
+            try {
+                // 실제 API 호출
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify(this.loginForm)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 로그인 성공
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+                    this.user = data.user;
+                    this.isAuthenticated = true;
+                    this.resetForms();
+                    // 로그인 후 활동 내역 로드
+                    this.loadActivities();
+                } else {
+                    this.authError = data.message || '로그인에 실패했습니다.';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                this.authError = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+            }
+
+            this.authLoading = false;
+        },
+
+        // 회원가입 처리
+        async handleRegister() {
+            this.authLoading = true;
+            this.authError = '';
+
+            // 입력 유효성 검사
+            if (!this.registerForm.name.trim()) {
+                this.authError = '이름을 입력해주세요.';
+                this.authLoading = false;
+                return;
+            }
+
+            if (!this.registerForm.email.includes('@')) {
+                this.authError = '올바른 이메일 주소를 입력해주세요.';
+                this.authLoading = false;
+                return;
+            }
+
+            if (this.registerForm.password.length < 6) {
+                this.authError = '비밀번호는 6자 이상이어야 합니다.';
+                this.authLoading = false;
+                return;
+            }
+
+            if (this.registerForm.password !== this.registerForm.confirmPassword) {
+                this.authError = '비밀번호가 일치하지 않습니다.';
+                this.authLoading = false;
+                return;
+            }
+
+            try {
+                // 실제 API 호출
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: this.registerForm.name.trim(),
+                        email: this.registerForm.email.trim().toLowerCase(),
+                        password: this.registerForm.password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // 회원가입 성공
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('userData', JSON.stringify(data.user));
+                    this.user = data.user;
+                    this.isAuthenticated = true;
+                    this.resetForms();
+                    // 회원가입 후 활동 내역 초기화
+                    this.activities = [];
+                } else {
+                    this.authError = data.message || '회원가입에 실패했습니다.';
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                this.authError = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+            }
+
+            this.authLoading = false;
+        },
+
+        // 임시 로그인 (개발용)
+        tempLogin() {
+            const tempUser = {
+                id: 'temp_' + Date.now(),
+                name: '테스트 사용자',
+                email: 'test@example.com',
+                joinDate: new Date().toLocaleDateString('ko-KR')
+            };
+            
+            localStorage.setItem('authToken', 'temp-token-' + Date.now());
+            localStorage.setItem('userData', JSON.stringify(tempUser));
+            this.user = tempUser;
+            this.isAuthenticated = true;
+            this.resetForms();
+            // 임시 로그인 시 빈 활동 내역
+            this.activities = [];
+        },
+
+        // 로그아웃
+        logout() {
+            // 서버에 로그아웃 요청 (선택사항)
+            const token = localStorage.getItem('authToken');
+            if (token && !token.startsWith('temp-token-')) {
+                fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }).catch(err => console.log('Logout request failed:', err));
+            }
+
+            // 로컬 데이터 정리
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            this.isAuthenticated = false;
+            this.user = {};
+            this.activities = [];
+            this.resetForms();
+            this.resetAppState();
+        },
+
+        // 폼 초기화
+        resetForms() {
+            this.loginForm = { email: '', password: '' };
+            this.registerForm = { name: '', email: '', password: '', confirmPassword: '' };
+            this.authError = '';
+        },
+
+        // 앱 상태 초기화
+        resetAppState() {
+            this.selectedCategory = '';
+            this.selectedHabit = {};
+            this.currentCards = [];
+            this.aiResponse = '';
+            this.loading = false;
+            this.chatMessages = []; // 🆕 채팅 메시지도 초기화
+        },
+
+        // 카테고리 선택
+        selectCategory(category) {
+            this.selectedCategory = category;
+            this.currentCards = this.cardData[category];
+            this.aiResponse = '';
+            this.selectedHabit = {};
+        },
+
+        // 습관 선택
+        selectHabit(habit) {
+            this.selectedHabit = habit;
+            this.getHabitRecommendation(habit);
+        },
+
+        // 습관 추천 가져오기
+        async getHabitRecommendation(habit) {
+            this.loading = true;
+            this.aiResponse = '';
+
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                // Q&A API 호출
+                const qaResponse = await fetch('/api/habits/qa', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        question: `${habit.prompt}에 대해 구체적이고 실행 가능한 아주 작은 습관 3개를 추천해주세요. 각 습관마다 실행 방법과 기대 효과를 포함해서 설명해주세요.`,
+                        category: this.selectedCategory,
+                        habitType: habit.title
+                    })
+                });
+
+                const qaData = await qaResponse.json();
+                
+                if (qaResponse.ok) {
+                    this.aiResponse = qaData.answer;
+                    // 활동 내역 새로고침 (새 활동이 기록되었을 수 있음)
+                    if (this.isAuthenticated) {
+                        this.loadActivities();
+                    }
+                } else {
+                    throw new Error(qaData.message || 'API 호출 실패');
+                }
+
+            } catch (error) {
+                console.error('Error getting habit recommendation:', error);
+                
+                // 네트워크 오류 시 기본 응답 제공
+                this.aiResponse = `${habit.title}에 대한 추천을 가져오는 중 오류가 발생했습니다.\n\n기본 팁: ${habit.description}\n\n추천 시간: ${habit.duration}\n\n다시 시도하거나 다른 습관을 선택해보세요.`;
+            }
+
+            this.loading = false;
+        },
+
+        // 다른 추천 받기
+        async getAnotherRecommendation() {
+            if (!this.selectedHabit.prompt) return;
+            
+            this.loading = true;
+            this.aiResponse = '';
+
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const qaResponse = await fetch('/api/habits/qa', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        question: `${this.selectedHabit.prompt}에 대해 이전과 다른 새로운 아주 작은 습관 3개를 추천해주세요. 창의적이고 실행하기 쉬운 방법들로 제안해주세요.`,
+                        category: this.selectedCategory,
+                        habitType: this.selectedHabit.title,
+                        requestType: 'alternative'
+                    })
+                });
+
+                const qaData = await qaResponse.json();
+                
+                if (qaResponse.ok) {
+                    this.aiResponse = qaData.answer;
+                    // 활동 내역 새로고침
+                    if (this.isAuthenticated) {
+                        this.loadActivities();
+                    }
+                } else {
+                    throw new Error(qaData.message || 'API 호출 실패');
+                }
+
+            } catch (error) {
+                console.error('Error getting alternative recommendation:', error);
+                this.aiResponse = '새로운 추천을 가져오는 중 오류가 발생했습니다. 다시 시도해주세요.';
+            }
+
+            this.loading = false;
+        },
+
+        // 뒤로가기
+        goBack() {
+            this.selectedCategory = '';
+            this.currentCards = [];
+            this.aiResponse = '';
+            this.selectedHabit = {};
+        },
+
+        // 사용자 프로필 업데이트 (추가 기능)
+        async updateProfile(newData) {
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const response = await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(newData)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.user = { ...this.user, ...data.user };
+                    localStorage.setItem('userData', JSON.stringify(this.user));
+                    return true;
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Profile update error:', error);
+                return false;
+            }
+        },
+
+        // 사용자 활동 기록 (추가 기능)
+        async logActivity(activity) {
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                await fetch('/api/user/activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        activity: activity,
+                        timestamp: new Date().toISOString(),
+                        category: this.selectedCategory,
+                        habit: this.selectedHabit.title
+                    })
+                });
+            } catch (error) {
+                console.error('Activity logging error:', error);
+            }
+        },
+
+        // 🆕 활동 내역 로드
+        async loadActivities() {
+            if (!this.isAuthenticated) return;
+            
+            this.activitiesLoading = true;
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const response = await fetch('/api/user/activities', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.activities = data.activities.sort((a, b) => 
+                        new Date(b.timestamp) - new Date(a.timestamp)
+                    );
+                } else {
+                    console.error('활동 내역 로드 실패:', response.status);
+                }
+            } catch (error) {
+                console.error('활동 내역 로드 중 오류:', error);
+            }
+            
+            this.activitiesLoading = false;
+        },
+
+        // 🆕 활동 내역 새로고침
+        async refreshActivities() {
+            await this.loadActivities();
+        },
+
+        // 🆕 활동 아이콘 가져오기
+        getActivityIcon(activity) {
+            const icons = {
+                'habit_qa_request': '💬',
+                'category_selected': '🎯',
+                'habit_selected': '✨',
+                'recommendation_requested': '🤖',
+                'alternative_requested': '🔄',
+                'chat_conversation': '💭' // 🆕 채팅 아이콘 추가
+            };
+            return icons[activity] || '📝';
+        },
+
+        // 🆕 활동 라벨 가져오기
+        getActivityLabel(activity) {
+            const labels = {
+                'habit_qa_request': '습관 질문',
+                'category_selected': '카테고리 선택',
+                'habit_selected': '습관 선택',
+                'recommendation_requested': '추천 요청',
+                'alternative_requested': '다른 추천 요청',
+                'chat_conversation': '습관 코치 채팅' // 🆕 채팅 라벨 추가
+            };
+            return labels[activity] || '기타 활동';
+        },
+
+        // 🆕 카테고리 라벨 가져오기
+        getCategoryLabel(category) {
+            const labels = {
+                'health': '건강 관리',
+                'productivity': '생산성 향상',
+                'stress': '스트레스 관리',
+                'energy': '에너지 증진',
+                'chat': '채팅' // 🆕 채팅 카테고리 추가
+            };
+            return labels[category] || category;
+        },
+
+        // 🆕 날짜 포맷팅
+        formatDate(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                if (diffMins < 1) return '방금 전';
+                if (diffMins < 60) return `${diffMins}분 전`;
+                if (diffHours < 24) return `${diffHours}시간 전`;
+                if (diffDays < 7) return `${diffDays}일 전`;
+                
+                return date.toLocaleDateString('ko-KR', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return '알 수 없음';
+            }
+        },
+
+        // 🆕 고유 카테고리 수 계산
+        getUniqueCategories() {
+            const categories = new Set(
+                this.activities
+                    .filter(activity => activity.category)
+                    .map(activity => activity.category)
+            );
+            return categories.size;
+        },
+
+        // 🆕 채팅 메시지 전송
+        async sendChatMessage() {
+            if (!this.chatInput.trim() || this.chatLoading || !this.isAuthenticated) {
+                return;
+            }
+
+            const userMessage = this.chatInput.trim();
+            this.chatInput = '';
+
+            // 사용자 메시지 추가
+            this.chatMessages.push({
+                role: 'user',
+                content: userMessage,
+                timestamp: new Date().toISOString()
+            });
+
+            this.chatLoading = true;
+            this.scrollChatToBottom();
+
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                // 시스템 메시지와 대화 히스토리 구성
+                const messages = [
+                    {
+                        role: 'system',
+                        content: `당신은 『아주 작은 습관(Atomic Habits)』 전문가이자 친근한 습관 코치입니다. 
+                    GPT가 책 내용 기반으로 현실적인 해결책과 동기부여 방법 제안하거나 격려해줘 하지만 너무 단도직입적으로 하지말고 자연스럽게 친근하게 가끔은 질문도 먼저하고 공감해줘 `
+                    },
+                    // 최근 대화 내역 포함 (최대 10개)
+                    ...this.chatMessages.slice(-10).map(msg => ({
+                        role: msg.role,
+                        content: msg.content
+                    }))
+                ];
+
+                const response = await fetch('/chat/conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ messages })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // AI 응답 추가
+                    this.chatMessages.push({
+                        role: 'assistant',
+                        content: data.response,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // 활동 기록 (로그인한 경우)
+                    await this.logChatActivity(userMessage, data.response);
+                    
+                    // 활동 내역 갱신
+                    this.loadActivities();
+                } else {
+                    throw new Error(data.detail || '응답을 받을 수 없습니다.');
+                }
+
+            } catch (error) {
+                console.error('Chat error:', error);
+                
+                // 에러 메시지 추가
+                this.chatMessages.push({
+                    role: 'assistant',
+                    content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            this.chatLoading = false;
+            this.scrollChatToBottom();
+        },
+
+        // 🆕 빠른 질문 전송
+        async sendQuickQuestion(question) {
+            this.chatInput = question;
+            await this.sendChatMessage();
+        },
+
+        // 🆕 채팅 활동 기록
+        async logChatActivity(userMessage, aiResponse) {
+            if (!this.isAuthenticated) return;
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                await fetch('/api/user/activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        activity: 'chat_conversation',
+                        timestamp: new Date().toISOString(),
+                        category: 'chat',
+                        habit: 'habit_coaching',
+                        question: userMessage.length > 100 ? userMessage.substring(0, 100) + '...' : userMessage
+                    })
+                });
+            } catch (error) {
+                console.error('Chat activity logging error:', error);
+            }
+        },
+
+        // 🆕 채팅 스크롤
+        scrollChatToBottom() {
+            this.$nextTick(() => {
+                const chatContainer = document.getElementById('chatMessages');
+                if (chatContainer) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            });
+        },
+
+        // 🆕 채팅 시간 포맷팅
+        formatChatTime(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+
+                if (diffMins < 1) return '방금';
+                if (diffMins < 60) return `${diffMins}분 전`;
+                
+                return date.toLocaleTimeString('ko-KR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return '';
+            }
+        },
+
+        // 🆕 채팅 초기화
+        clearChat() {
+            if (confirm('대화 내역을 모두 지우시겠습니까?')) {
+                this.chatMessages = [];
+            }
+        }
+    }
+}
+
+// 페이지 로드 시 초기 데이터 가져오기 (기존 함수 유지)
+async function getData() {
+    try {
+        const token = localStorage.getItem('authToken');
+        
+        const response = await fetch("/api/habits/goals", {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log("Fetched data:", data);
+        }
+    } catch (error) {
+        console.log("데이터 로딩 중 오류:", error);
+    }
+}
+
+// 페이지 로드 이벤트
+window.addEventListener('load', getData);
+    </script>
+</body>
+</html>
+
