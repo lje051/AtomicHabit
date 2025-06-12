@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -431,37 +430,14 @@
                         <template x-for="(message, index) in chatMessages" :key="index">
                             <div class="mb-4" :class="message.role === 'user' ? 'text-right' : 'text-left'">
                                 <div class="inline-block max-w-[80%]" :class="message.role === 'user' ? 'ml-auto' : 'mr-auto'">
-                                    <div class="flex items-start space-x-3" :class="message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''">
-                                        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                                             :class="message.role === 'user' ? 'bg-blue-500/30' : 'bg-green-500/30'">
-                                            <span x-text="message.role === 'user' ? '👤' : '🤖'"></span>
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-xs text-white/60 mb-1 px-1" 
-                                                 :class="message.role === 'user' ? 'text-right' : 'text-left'"
-                                                 x-text="message.role === 'user' ? '나' : '습관 코치'"></div>
-                                            <div class="rounded-2xl p-4 shadow-lg"
-                                                 :class="message.role === 'user' ? 
-                                                    'bg-blue-500/30 border border-blue-400/30 rounded-br-md' : 
-                                                    'bg-white/10 border border-white/20 rounded-bl-md'">
-                                                <div class="whitespace-pre-wrap text-sm leading-relaxed" x-text="message.content"></div>
-                                            </div>
-                                            <div class="text-xs text-white/40 mt-1 px-1" 
-                                                 :class="message.role === 'user' ? 'text-right' : 'text-left'"
-                                                 x-text="formatChatTime(message.timestamp)"></div>
-                                            <!-- 선택된 습관 정보 표시 -->
-                                            <div x-show="message.selectedCategory || message.selectedHabit" 
-                                                 class="mt-2 px-1">
-                                                <div class="flex flex-wrap gap-1 text-xs" 
-                                                     :class="message.role === 'user' ? 'justify-end' : 'justify-start'">
-                                                    <span x-show="message.selectedCategory" 
-                                                          class="bg-white/20 px-2 py-1 rounded-full"
-                                                          x-text="getCategoryLabel(message.selectedCategory)"></span>
-                                                    <span x-show="message.selectedHabit" 
-                                                          class="bg-white/30 px-2 py-1 rounded-full"
-                                                          x-text="message.selectedHabit"></span>
-                                                </div>
-                                            </div>
+                                    <div class="flex items-start space-x-2" :class="message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''">
+                                        <div class="text-lg" x-text="message.role === 'user' ? '👤' : '🤖'"></div>
+                                        <div class="flex-1">
+                                            <div class="text-xs text-white/60 mb-1" x-text="message.role === 'user' ? '나' : '습관 코치'"></div>
+                                            <div class="rounded-2xl p-3 whitespace-pre-wrap text-sm"
+                                                 :class="message.role === 'user' ? 'bg-blue-500/30 border border-blue-400/30' : 'bg-white/10 border border-white/20'"
+                                                 x-text="message.content"></div>
+                                            <div class="text-xs text-white/40 mt-1" x-text="formatChatTime(message.timestamp)"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -470,21 +446,16 @@
                         
                         <!-- 타이핑 인디케이터 -->
                         <div x-show="chatLoading" class="text-left mb-4">
-                            <div class="inline-block max-w-[80%] mr-auto">
-                                <div class="flex items-start space-x-3">
-                                    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center text-sm">
-                                        <span>🤖</span>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-xs text-white/60 mb-1 px-1">습관 코치</div>
-                                        <div class="bg-white/10 border border-white/20 rounded-2xl rounded-bl-md p-4">
-                                            <div class="flex space-x-1 items-center">
-                                                <span class="text-sm text-white/80">답변 중</span>
-                                                <div class="flex space-x-1 ml-2">
-                                                    <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
-                                                    <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                                                    <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                                                </div>
+                            <div class="inline-block max-w-[80%]">
+                                <div class="flex items-start space-x-2">
+                                    <div class="text-lg">🤖</div>
+                                    <div class="flex-1">
+                                        <div class="text-xs text-white/60 mb-1">습관 코치</div>
+                                        <div class="rounded-2xl p-3 bg-white/10 border border-white/20">
+                                            <div class="flex space-x-1">
+                                                <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
+                                                <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                                <div class="w-2 h-2 bg-white/60 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -554,8 +525,9 @@
         </div>
     </div>
 
+
     <script>
-      function habitApp() {
+     function habitApp() {
     return {
         // 인증 관련 상태
         isAuthenticated: false,
@@ -643,8 +615,9 @@
             if (token && userData) {
                 this.isAuthenticated = true;
                 this.user = JSON.parse(userData);
-                // 로그인 상태라면 활동 내역도 미리 로드
+                // 로그인 상태라면 활동 내역과 채팅 내역 로드
                 this.loadActivities();
+                this.loadChatHistory();
             }
         },
 
@@ -654,12 +627,10 @@
             this.authError = '';
 
             try {
-                // 실제 API 호출
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(this.loginForm)
                 });
@@ -667,14 +638,14 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // 로그인 성공
                     localStorage.setItem('authToken', data.token);
                     localStorage.setItem('userData', JSON.stringify(data.user));
                     this.user = data.user;
                     this.isAuthenticated = true;
                     this.resetForms();
-                    // 로그인 후 활동 내역 로드
+                    // 로그인 후 활동 내역과 채팅 내역 로드
                     this.loadActivities();
+                    this.loadChatHistory();
                 } else {
                     this.authError = data.message || '로그인에 실패했습니다.';
                 }
@@ -717,7 +688,6 @@
             }
 
             try {
-                // 실제 API 호출
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: {
@@ -733,14 +703,13 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // 회원가입 성공
                     localStorage.setItem('authToken', data.token);
                     localStorage.setItem('userData', JSON.stringify(data.user));
                     this.user = data.user;
                     this.isAuthenticated = true;
                     this.resetForms();
-                    // 회원가입 후 활동 내역 초기화
                     this.activities = [];
+                    this.chatMessages = [];
                 } else {
                     this.authError = data.message || '회원가입에 실패했습니다.';
                 }
@@ -766,13 +735,12 @@
             this.user = tempUser;
             this.isAuthenticated = true;
             this.resetForms();
-            // 임시 로그인 시 빈 활동 내역
             this.activities = [];
+            this.chatMessages = [];
         },
 
         // 로그아웃
         logout() {
-            // 서버에 로그아웃 요청 (선택사항)
             const token = localStorage.getItem('authToken');
             if (token && !token.startsWith('temp-token-')) {
                 fetch('/api/auth/logout', {
@@ -783,7 +751,6 @@
                 }).catch(err => console.log('Logout request failed:', err));
             }
 
-            // 로컬 데이터 정리
             localStorage.removeItem('authToken');
             localStorage.removeItem('userData');
             this.isAuthenticated = false;
@@ -807,7 +774,7 @@
             this.currentCards = [];
             this.aiResponse = '';
             this.loading = false;
-            this.chatMessages = []; // 🆕 채팅 메시지도 초기화
+            this.chatMessages = [];
         },
 
         // 카테고리 선택
@@ -819,8 +786,29 @@
         },
 
         // 습관 선택
-        selectHabit(habit) {
+        async selectHabit(habit) {
             this.selectedHabit = habit;
+            
+            // 선택된 습관을 서버에 저장
+            if (this.isAuthenticated) {
+                try {
+                    const token = localStorage.getItem('authToken');
+                    await fetch('/api/habits/select', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            ...habit,
+                            category: this.selectedCategory
+                        })
+                    });
+                } catch (error) {
+                    console.error('Habit selection save error:', error);
+                }
+            }
+            
             this.getHabitRecommendation(habit);
         },
 
@@ -832,7 +820,6 @@
             try {
                 const token = localStorage.getItem('authToken');
                 
-                // Q&A API 호출
                 const qaResponse = await fetch('/api/habits/qa', {
                     method: 'POST',
                     headers: {
@@ -850,7 +837,6 @@
                 
                 if (qaResponse.ok) {
                     this.aiResponse = qaData.answer;
-                    // 활동 내역 새로고침 (새 활동이 기록되었을 수 있음)
                     if (this.isAuthenticated) {
                         this.loadActivities();
                     }
@@ -860,8 +846,6 @@
 
             } catch (error) {
                 console.error('Error getting habit recommendation:', error);
-                
-                // 네트워크 오류 시 기본 응답 제공
                 this.aiResponse = `${habit.title}에 대한 추천을 가져오는 중 오류가 발생했습니다.\n\n기본 팁: ${habit.description}\n\n추천 시간: ${habit.duration}\n\n다시 시도하거나 다른 습관을 선택해보세요.`;
             }
 
@@ -896,7 +880,6 @@
                 
                 if (qaResponse.ok) {
                     this.aiResponse = qaData.answer;
-                    // 활동 내역 새로고침
                     if (this.isAuthenticated) {
                         this.loadActivities();
                     }
@@ -920,59 +903,7 @@
             this.selectedHabit = {};
         },
 
-        // 사용자 프로필 업데이트 (추가 기능)
-        async updateProfile(newData) {
-            try {
-                const token = localStorage.getItem('authToken');
-                
-                const response = await fetch('/api/user/profile', {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(newData)
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    this.user = { ...this.user, ...data.user };
-                    localStorage.setItem('userData', JSON.stringify(this.user));
-                    return true;
-                } else {
-                    throw new Error(data.message);
-                }
-            } catch (error) {
-                console.error('Profile update error:', error);
-                return false;
-            }
-        },
-
-        // 사용자 활동 기록 (추가 기능)
-        async logActivity(activity) {
-            try {
-                const token = localStorage.getItem('authToken');
-                
-                await fetch('/api/user/activity', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        activity: activity,
-                        timestamp: new Date().toISOString(),
-                        category: this.selectedCategory,
-                        habit: this.selectedHabit.title
-                    })
-                });
-            } catch (error) {
-                console.error('Activity logging error:', error);
-            }
-        },
-
-        // 🆕 활동 내역 로드
+        // 활동 내역 로드
         async loadActivities() {
             if (!this.isAuthenticated) return;
             
@@ -1002,12 +933,133 @@
             this.activitiesLoading = false;
         },
 
-        // 🆕 활동 내역 새로고침
+        // 활동 내역 새로고침
         async refreshActivities() {
             await this.loadActivities();
         },
 
-        // 🆕 활동 아이콘 가져오기
+        // 채팅 내역 로드
+        async loadChatHistory() {
+            if (!this.isAuthenticated) return;
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const response = await fetch('/api/chat/history', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.chatMessages = data.chat_history || [];
+                    
+                    if (data.selected_habit && Object.keys(data.selected_habit).length > 0) {
+                        this.selectedHabit = data.selected_habit;
+                    }
+                    
+                    this.scrollChatToBottom();
+                } else {
+                    console.error('채팅 내역 로드 실패:', response.status);
+                }
+            } catch (error) {
+                console.error('채팅 내역 로드 중 오류:', error);
+            }
+        },
+
+        // 채팅 메시지 전송
+        async sendChatMessage() {
+            if (!this.chatInput.trim() || this.chatLoading || !this.isAuthenticated) {
+                return;
+            }
+
+            const userMessage = this.chatInput.trim();
+            this.chatInput = '';
+            this.chatLoading = true;
+
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        message: userMessage,
+                        selected_habit: this.selectedHabit
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    this.chatMessages = data.chat_history;
+                    this.loadActivities();
+                } else {
+                    throw new Error(data.detail || '응답을 받을 수 없습니다.');
+                }
+
+            } catch (error) {
+                console.error('Chat error:', error);
+                
+                this.chatMessages.push({
+                    role: 'assistant',
+                    content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            this.chatLoading = false;
+            this.scrollChatToBottom();
+        },
+
+        // 빠른 질문 전송
+        async sendQuickQuestion(question) {
+            this.chatInput = question;
+            await this.sendChatMessage();
+        },
+
+        // 채팅 초기화
+        async clearChat() {
+            if (!confirm('대화 내역을 모두 지우시겠습니까?')) {
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                
+                const response = await fetch('/api/chat/clear', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    this.chatMessages = [];
+                    this.selectedHabit = {};
+                } else {
+                    console.error('채팅 내역 삭제 실패:', response.status);
+                }
+            } catch (error) {
+                console.error('채팅 내역 삭제 중 오류:', error);
+            }
+        },
+
+        // 채팅 스크롤
+        scrollChatToBottom() {
+            this.$nextTick(() => {
+                const chatContainer = document.getElementById('chatMessages');
+                if (chatContainer) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            });
+        },
+
+        // 활동 아이콘 가져오기
         getActivityIcon(activity) {
             const icons = {
                 'habit_qa_request': '💬',
@@ -1015,12 +1067,12 @@
                 'habit_selected': '✨',
                 'recommendation_requested': '🤖',
                 'alternative_requested': '🔄',
-                'chat_conversation': '💭' // 🆕 채팅 아이콘 추가
+                'chat_conversation': '💭'
             };
             return icons[activity] || '📝';
         },
 
-        // 🆕 활동 라벨 가져오기
+        // 활동 라벨 가져오기
         getActivityLabel(activity) {
             const labels = {
                 'habit_qa_request': '습관 질문',
@@ -1028,24 +1080,24 @@
                 'habit_selected': '습관 선택',
                 'recommendation_requested': '추천 요청',
                 'alternative_requested': '다른 추천 요청',
-                'chat_conversation': '습관 코치 채팅' // 🆕 채팅 라벨 추가
+                'chat_conversation': '습관 코치 채팅'
             };
             return labels[activity] || '기타 활동';
         },
 
-        // 🆕 카테고리 라벨 가져오기
+        // 카테고리 라벨 가져오기
         getCategoryLabel(category) {
             const labels = {
                 'health': '건강 관리',
                 'productivity': '생산성 향상',
                 'stress': '스트레스 관리',
                 'energy': '에너지 증진',
-                'chat': '채팅' // 🆕 채팅 카테고리 추가
+                'chat': '채팅'
             };
             return labels[category] || category;
         },
 
-        // 🆕 날짜 포맷팅
+        // 날짜 포맷팅
         formatDate(timestamp) {
             try {
                 const date = new Date(timestamp);
@@ -1072,138 +1124,7 @@
             }
         },
 
-        // 🆕 고유 카테고리 수 계산
-        getUniqueCategories() {
-            const categories = new Set(
-                this.activities
-                    .filter(activity => activity.category)
-                    .map(activity => activity.category)
-            );
-            return categories.size;
-        },
-
-        // 🆕 채팅 메시지 전송
-        async sendChatMessage() {
-            if (!this.chatInput.trim() || this.chatLoading || !this.isAuthenticated) {
-                return;
-            }
-
-            const userMessage = this.chatInput.trim();
-            this.chatInput = '';
-
-            // 사용자 메시지 추가
-            this.chatMessages.push({
-                role: 'user',
-                content: userMessage,
-                timestamp: new Date().toISOString()
-            });
-
-            this.chatLoading = true;
-            this.scrollChatToBottom();
-
-            try {
-                const token = localStorage.getItem('authToken');
-                
-                // 시스템 메시지와 대화 히스토리 구성
-                const messages = [
-                    {
-                        role: 'system',
-                        content: `당신은 『아주 작은 습관(Atomic Habits)』 전문가이자 친근한 습관 코치입니다. 
-                    GPT가 책 내용 기반으로 현실적인 해결책과 동기부여 방법 제안하거나 격려해줘 하지만 너무 단도직입적으로 하지말고 자연스럽게 친근하게 가끔은 질문도 먼저하고 공감해줘 `
-                    },
-                    // 최근 대화 내역 포함 (최대 10개)
-                    ...this.chatMessages.slice(-10).map(msg => ({
-                        role: msg.role,
-                        content: msg.content
-                    }))
-                ];
-
-                const response = await fetch('/chat/conversation', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ messages })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // AI 응답 추가
-                    this.chatMessages.push({
-                        role: 'assistant',
-                        content: data.response,
-                        timestamp: new Date().toISOString()
-                    });
-
-                    // 활동 기록 (로그인한 경우)
-                    await this.logChatActivity(userMessage, data.response);
-                    
-                    // 활동 내역 갱신
-                    this.loadActivities();
-                } else {
-                    throw new Error(data.detail || '응답을 받을 수 없습니다.');
-                }
-
-            } catch (error) {
-                console.error('Chat error:', error);
-                
-                // 에러 메시지 추가
-                this.chatMessages.push({
-                    role: 'assistant',
-                    content: '죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-                    timestamp: new Date().toISOString()
-                });
-            }
-
-            this.chatLoading = false;
-            this.scrollChatToBottom();
-        },
-
-        // 🆕 빠른 질문 전송
-        async sendQuickQuestion(question) {
-            this.chatInput = question;
-            await this.sendChatMessage();
-        },
-
-        // 🆕 채팅 활동 기록
-        async logChatActivity(userMessage, aiResponse) {
-            if (!this.isAuthenticated) return;
-            
-            try {
-                const token = localStorage.getItem('authToken');
-                
-                await fetch('/api/user/activity', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        activity: 'chat_conversation',
-                        timestamp: new Date().toISOString(),
-                        category: 'chat',
-                        habit: 'habit_coaching',
-                        question: userMessage.length > 100 ? userMessage.substring(0, 100) + '...' : userMessage
-                    })
-                });
-            } catch (error) {
-                console.error('Chat activity logging error:', error);
-            }
-        },
-
-        // 🆕 채팅 스크롤
-        scrollChatToBottom() {
-            this.$nextTick(() => {
-                const chatContainer = document.getElementById('chatMessages');
-                if (chatContainer) {
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                }
-            });
-        },
-
-        // 🆕 채팅 시간 포맷팅
+        // 채팅 시간 포맷팅
         formatChatTime(timestamp) {
             try {
                 const date = new Date(timestamp);
@@ -1223,16 +1144,19 @@
             }
         },
 
-        // 🆕 채팅 초기화
-        clearChat() {
-            if (confirm('대화 내역을 모두 지우시겠습니까?')) {
-                this.chatMessages = [];
-            }
+        // 고유 카테고리 수 계산
+        getUniqueCategories() {
+            const categories = new Set(
+                this.activities
+                    .filter(activity => activity.category)
+                    .map(activity => activity.category)
+            );
+            return categories.size;
         }
     }
 }
 
-// 페이지 로드 시 초기 데이터 가져오기 (기존 함수 유지)
+// 페이지 로드 시 초기 데이터 가져오기
 async function getData() {
     try {
         const token = localStorage.getItem('authToken');

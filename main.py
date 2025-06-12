@@ -11,10 +11,16 @@ import secrets
 import time
 from datetime import datetime, timedelta
 
+# from auth_routes import auth_router  # 인증 관련 라우터 가져오기
+
+from helpers import hash_password, generate_token  # 유틸리티 함수들 가져오기
+
 templates = Jinja2Templates(directory="templates")
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(title="부트캠프 ChatGPT API 서버", version="1.0.0")
+
+# app.include_router(auth_router, prefix="/api/auth", tags=["auth"])  # 인증 관련 라우터 등록
 
 # 부트캠프 API 엔드포인트 URL
 BOOTCAMP_API_URL = "https://dev.wenivops.co.kr/services/openai-api"
@@ -23,7 +29,9 @@ BOOTCAMP_API_URL = "https://dev.wenivops.co.kr/services/openai-api"
 users_db = {}  # {user_id: user_data}
 tokens_db = {}  # {token: user_id}
 user_activities = {}  # {user_id: [activities]}
-user_chat_histories = {}  # {user_id: [chat_messages]} 🆕 채팅 내역 저장소
+user_chat_history = {}  # {user_id: [chat_messages]} 🆕 채팅 내역 저장소
+user_selected_habits = {}  # {user_id: selected_habit_data} 🆕 선택된 습관 저장소
+
 # Security
 security = HTTPBearer()
 
@@ -46,22 +54,21 @@ class ActivityLog(BaseModel):
     timestamp: str
     category: Optional[str] = None
     habit: Optional[str] = None
-    
-# 🆕 채팅 관련 모델들
+
 class ChatMessage(BaseModel):
     role: str  # 'user' or 'assistant'
     content: str
     timestamp: str
-    selectedCategory: Optional[str] = None
-    selectedHabit: Optional[str] = None
 
-class SaveChatRequest(BaseModel):
-    messages: List[ChatMessage]
+class ChatHistoryRequest(BaseModel):
+    message: str
+    selected_habit: Optional[Dict] = None
 
-class LoadChatResponse(BaseModel):
+class ChatHistoryResponse(BaseModel):
     success: bool
-    messages: List[ChatMessage] = []
-    total: int = 0
+    response: str
+    chat_history: List[Dict]
+    usage: Dict = {}
 
 # 기존 모델들
 class Message(BaseModel):
@@ -151,7 +158,9 @@ async def register_user(user_data: UserRegister):
     
     users_db[user_id] = user
     user_activities[user_id] = []
-    user_chat_histories[user_id] = []
+    user_chat_history[user_id] = []  # 🆕 채팅 내역 초기화
+    user_selected_habits[user_id] = {}  # 🆕 선택된 습관 초기화
+    
     # 토큰 생성
     token = generate_token()
     tokens_db[token] = user_id
@@ -211,6 +220,152 @@ async def logout_user(current_user: dict = Depends(get_current_user), credential
     return {
         "success": True,
         "message": "로그아웃이 완료되었습니다"
+    }
+
+# 🆕 채팅 관련 API
+@app.post("/api/chat/send")
+async def send_chat_message(request: ChatHistoryRequest, current_user: dict = Depends(get_current_user)):
+    """채팅 메시지 전송 및 내역 저장"""
+    
+    user_id = current_user["id"]
+    
+    # 사용자별 채팅 내역 초기화 (필요시)
+    if user_id not in user_chat_history:
+        user_chat_history[user_id] = []
+    
+    # 선택된 습관 저장 (있는 경우)
+    if request.selected_habit:
+        user_selected_habits[user_id] = request.selected_habit
+    
+    # 사용자 메시지 저장
+    user_message = {
+        "role": "user",
+        "content": request.message,
+        "timestamp": datetime.now().isoformat()
+    }
+    user_chat_history[user_id].append(user_message)
+    
+    try:
+        # 시스템 메시지 구성
+        system_message = {
+            "role": "system",
+            "content": """당신은 『아주 작은 습관(Atomic Habits)』 전문가이자 친근한 습관 코치입니다. 
+
+다음 원칙들을 기반으로 조언해주세요:
+1. 습관은 작게 시작해야 합니다 (2분 규칙)
+2. 환경을 디자인하세요 (좋은 습관은 보이게, 나쁜 습관은 숨기게)
+3. 습관 쌓기 (기존 습관에 새 습관을 연결)
+4. 즉각적 보상을 만드세요
+5. 완벽하지 않아도 계속하는 것이 중요합니다
+
+사용자와 자연스럽고 친근한 대화를 나누면서 실용적이고 즉시 실행 가능한 조언을 해주세요. 답변은 따뜻하고 격려하는 톤으로 해주세요."""
+        }
+        
+        # 선택된 습관 정보 추가 (있는 경우)
+        if user_id in user_selected_habits and user_selected_habits[user_id]:
+            habit_info = user_selected_habits[user_id]
+            system_message["content"] += f"\n\n현재 사용자가 관심 있는 습관: {habit_info.get('title', '')} - {habit_info.get('description', '')}"
+        
+        # 최근 채팅 내역 포함 (최대 20개)
+        recent_messages = user_chat_history[user_id][-20:]
+        messages = [system_message] + recent_messages
+        
+        # OpenAI API 호출
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                BOOTCAMP_API_URL,
+                json=messages,
+                timeout=30.0
+            )
+            response.raise_for_status()
+            response_data = response.json()
+            
+            ai_response = response_data["choices"][0]["message"]["content"]
+            
+            # AI 응답 저장
+            ai_message = {
+                "role": "assistant",
+                "content": ai_response,
+                "timestamp": datetime.now().isoformat()
+            }
+            user_chat_history[user_id].append(ai_message)
+            
+            # 활동 기록
+            if user_id not in user_activities:
+                user_activities[user_id] = []
+            
+            activity_record = {
+                "activity": "chat_conversation",
+                "timestamp": datetime.now().isoformat(),
+                "category": "chat",
+                "habit": "habit_coaching",
+                "question": request.message[:100] + "..." if len(request.message) > 100 else request.message,
+                "recordedAt": datetime.now().isoformat()
+            }
+            user_activities[user_id].append(activity_record)
+            
+            return {
+                "success": True,
+                "response": ai_response,
+                "chat_history": user_chat_history[user_id],
+                "usage": response_data["usage"]
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"채팅 처리 중 오류: {str(e)}")
+
+@app.get("/api/chat/history")
+async def get_chat_history(current_user: dict = Depends(get_current_user)):
+    """사용자 채팅 내역 조회"""
+    
+    user_id = current_user["id"]
+    chat_history = user_chat_history.get(user_id, [])
+    selected_habit = user_selected_habits.get(user_id, {})
+    
+    return {
+        "success": True,
+        "chat_history": chat_history,
+        "selected_habit": selected_habit,
+        "total_messages": len(chat_history)
+    }
+
+@app.delete("/api/chat/clear")
+async def clear_chat_history(current_user: dict = Depends(get_current_user)):
+    """채팅 내역 초기화"""
+    
+    user_id = current_user["id"]
+    user_chat_history[user_id] = []
+    user_selected_habits[user_id] = {}
+    
+    return {
+        "success": True,
+        "message": "채팅 내역이 초기화되었습니다"
+    }
+
+@app.post("/api/habits/select")
+async def select_habit(habit_data: dict, current_user: dict = Depends(get_current_user)):
+    """습관 선택 저장"""
+    
+    user_id = current_user["id"]
+    user_selected_habits[user_id] = habit_data
+    
+    # 활동 기록
+    if user_id not in user_activities:
+        user_activities[user_id] = []
+    
+    activity_record = {
+        "activity": "habit_selected",
+        "timestamp": datetime.now().isoformat(),
+        "category": habit_data.get("category", ""),
+        "habit": habit_data.get("title", ""),
+        "recordedAt": datetime.now().isoformat()
+    }
+    user_activities[user_id].append(activity_record)
+    
+    return {
+        "success": True,
+        "message": "습관이 선택되었습니다",
+        "selected_habit": habit_data
     }
 
 @app.get("/api/user/profile")
@@ -290,37 +445,6 @@ async def get_user_activities(current_user: dict = Depends(get_current_user)):
         "total": len(activities)
     }
 
-# 기존 채팅 엔드포인트들 (그대로 유지)
-@app.post("/chat/simple", response_model=ChatResponse)
-async def simple_chat(request: SimpleChatRequest):
-    """간단한 채팅 함수"""
-    messages = [
-        {"role": "system", "content": request.system_message},
-        {"role": "user", "content": request.message}
-    ]
-
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                BOOTCAMP_API_URL,
-                json=messages,
-                timeout=30.0
-            )
-            response.raise_for_status()
-            response_data = response.json()
-
-            ai_message = response_data["choices"][0]["message"]["content"]
-            usage_info = response_data["usage"]
-
-            return ChatResponse(response=ai_message, usage=usage_info)
-
-        except httpx.TimeoutException:
-            raise HTTPException(status_code=408, detail="API 요청 시간이 초과되었습니다")
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=f"API 오류: {e}")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"서버 오류: {str(e)}")
-
 @app.post("/chat/conversation", response_model=ChatResponse)
 async def conversation_chat(request: ConversationRequest):
     """대화 맥락 유지 채팅"""
@@ -341,62 +465,6 @@ async def conversation_chat(request: ConversationRequest):
             )
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-
-# 🆕 채팅 내역 관련 API
-@app.post("/api/user/chat/save")
-async def save_chat_history(chat_data: SaveChatRequest, current_user: dict = Depends(get_current_user)):
-    """사용자 채팅 내역 저장"""
-    
-    user_id = current_user["id"]
-    
-    if user_id not in user_chat_histories:
-        user_chat_histories[user_id] = []
-    
-    # 기존 채팅 내역을 새로운 메시지들로 교체
-    user_chat_histories[user_id] = [
-        {
-            "role": msg.role,
-            "content": msg.content,
-            "timestamp": msg.timestamp,
-            "selectedCategory": msg.selectedCategory,
-            "selectedHabit": msg.selectedHabit,
-            "savedAt": datetime.now().isoformat()
-        }
-        for msg in chat_data.messages
-    ]
-    
-    return {
-        "success": True,
-        "message": "채팅 내역이 저장되었습니다",
-        "total_messages": len(user_chat_histories[user_id])
-    }
-
-@app.get("/api/user/chat/load")
-async def load_chat_history(current_user: dict = Depends(get_current_user)):
-    """사용자 채팅 내역 로드"""
-    
-    user_id = current_user["id"]
-    messages = user_chat_histories.get(user_id, [])
-    
-    return {
-        "success": True,
-        "messages": messages,
-        "total": len(messages)
-    }
-
-@app.delete("/api/user/chat/clear")
-async def clear_chat_history(current_user: dict = Depends(get_current_user)):
-    """사용자 채팅 내역 삭제"""
-    
-    user_id = current_user["id"]
-    
-    if user_id in user_chat_histories:
-        user_chat_histories[user_id] = []
-    
-    return {
-        "success": True,
-        "message": "채팅 내역이 삭제되었습니다"
-    }
 
 # 🆕 습관 관련 API (인증 선택적)
 @app.post("/api/habits/qa")
@@ -512,10 +580,12 @@ async def get_all_activities():
 @app.delete("/api/dev/reset")
 async def reset_database():
     """개발용: 데이터베이스 초기화"""
-    global users_db, tokens_db, user_activities
+    global users_db, tokens_db, user_activities, user_chat_history, user_selected_habits
     users_db.clear()
     tokens_db.clear()
     user_activities.clear()
+    user_chat_history.clear()  # 🆕 채팅 내역도 초기화
+    user_selected_habits.clear()  # 🆕 선택된 습관도 초기화
     
     return {
         "success": True,
