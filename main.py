@@ -11,16 +11,10 @@ import secrets
 import time
 from datetime import datetime, timedelta
 
-# from auth_routes import auth_router  # 인증 관련 라우터 가져오기
-
-from helpers import hash_password, generate_token  # 유틸리티 함수들 가져오기
-
 templates = Jinja2Templates(directory="templates")
 
 # FastAPI 애플리케이션 인스턴스 생성
 app = FastAPI(title="부트캠프 ChatGPT API 서버", version="1.0.0")
-
-# app.include_router(auth_router, prefix="/api/auth", tags=["auth"])  # 인증 관련 라우터 등록
 
 # 부트캠프 API 엔드포인트 URL
 BOOTCAMP_API_URL = "https://dev.wenivops.co.kr/services/openai-api"
